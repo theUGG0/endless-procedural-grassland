@@ -1,0 +1,5 @@
+**/build
+.vscode
+**.cache
+.glsld
+compile_commands.json

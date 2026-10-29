@@ -1,0 +1,89 @@
+{
+    "version": 5,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 27,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "win",
+            "architecture": {
+                "value": "x86",
+                "strategy": "external"
+            },
+            "toolset": {
+                "value": "host=x86",
+                "strategy": "external"
+            },
+            "generator": "Visual Studio 17 2022",
+            "hidden": true
+        },
+        {
+            "name": "unix",
+            "generator": "Unix Makefiles",
+            "hidden": true
+        },
+        {
+            "name": "vcpkg",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            },
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build"
+
+        },
+        {
+            "name": "build-config-win",
+            "inherits": [
+                "vcpkg",
+                "win"
+            ],
+            "displayName": "Build Config",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },        
+        {
+            "name": "build-config-unix",
+            "inherits": [
+                "vcpkg",
+                "unix"
+            ],
+            "displayName": "Build Config",
+            "condition": {
+                "type": "notEquals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "win-build",
+            "configurePreset": "build-config-win",
+            "targets": [
+                "Endless_Grassland"
+            ],
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "unix-build",
+            "configurePreset": "build-config-unix",
+            "targets": [
+                "Endless_Grassland"
+            ],
+            "condition": {
+                "type": "notEquals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        }
+    ]
+}

@@ -18,6 +18,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPROJ_ROOT_PATH=\\\"\"${CMAKE_CURRENT_L
 add_executable(Endless_Grassland
     ${CMAKE_CURRENT_LIST_DIR}/src/main.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/shader_util.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/Camera.cpp
 )
 
 target_include_directories(Endless_Grassland PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)

@@ -1,4 +1,4 @@
-#version 400
+#version 330
 
 // This is the output variable of the fragment shader
 // We configure this to be "output 0" for our fragment shader

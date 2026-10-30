@@ -1,3 +1,5 @@
+#include "shader_util.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -10,6 +12,14 @@ using namespace glm;
 
 #define GLSL(src) #src
 
+// Some data
+
+// Pass in shader names here once we have them
+#define CONCAT_PATHS(A, B) A "/" B
+#define ADD_ROOT(B) CONCAT_PATHS(PROJ_ROOT_PATH, B)
+shader_prog shader(ADD_ROOT("shaders/basic.vert.glsl"),
+                   ADD_ROOT("shaders/basic.frag.glsl"));
+
 static void error_callback(int error, const char *description) {
   fputs(description, stderr);
 }
@@ -20,7 +30,9 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 }
 
 static void render(GLFWwindow *window) {
-  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_ACCUM_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_ACCUM_BUFFER_BIT);
+
+  // Render a simple cube for testing
 }
 
 int main(void) {
@@ -55,7 +67,7 @@ int main(void) {
 
     glfwSwapBuffers(window);
     glfwPollEvents();
-    //glfwWaitEvents();
+    // glfwWaitEvents();
   }
 
   glfwDestroyWindow(window);

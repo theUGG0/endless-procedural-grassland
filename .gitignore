@@ -3,3 +3,4 @@
 **.cache
 .glsld
 compile_commands.json
+**/vcpkg_installed

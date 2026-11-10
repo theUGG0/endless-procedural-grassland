@@ -6,14 +6,14 @@ CMake is used as the build system and vcpkg for package management.
 
 Make sure you have the `VCPKG_ROOT` path set. 
 
-To make a Windows build, run the following commands 
+To make a Windows build using Ninja (which you will need to install), run the following commands 
 ```sh
 cmake --preset build-config-win
 cmake --build --preset win-build
 ``` 
 You will need to enable Developer Mode in Windows settings so that CMake can make the symlink to `compile_commands.json`. 
 
-The binary will be at `build/Debug/Endless_Grassland.exe`
+The binary will be at `build/Endless_Grassland.exe`
 
 To make a Unix (Linux) build, run the following commands 
 ```sh

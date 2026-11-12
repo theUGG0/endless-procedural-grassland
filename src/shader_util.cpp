@@ -3,11 +3,13 @@
  * Shader configuration utility routines.
  */
 #include "shader_util.h"
+#include <cstddef>
 #include <stdexcept>
 #include <cerrno>
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <string>
 #include <vector>
 #include <cstring>
 #include <stdlib.h>
@@ -34,7 +36,24 @@ GLuint compile(GLuint type, std::string source) {
     std::vector<GLchar *> lines;
     std::string line;
     std::istringstream ss(source);
+    std::string path = "shaders/"; // probs wont have to un-hardcode
     while(getline(ss, line)) {
+        if (!line.substr(0, 8).compare("#include")){
+           size_t fn_st = line.find('"');
+           size_t fn_end = line.find('"', fn_st + 1);
+           std::string inc_filename = line.substr(fn_st + 1, fn_end - fn_st - 1);
+
+           std::fstream ifs(path + inc_filename);
+
+           std::string inc_line;
+           while(getline(ifs, inc_line)){
+                inc_line += '\n';
+                GLchar* c_line = (GLchar*)malloc(inc_line.size()+1);
+                strcpy(c_line, inc_line.c_str());
+                lines.push_back(c_line);
+           }
+           continue;
+        }
         line += '\n';
         GLchar* c_line = (GLchar*)malloc(line.size()+1);
         strcpy(c_line, line.c_str());

@@ -45,3 +45,17 @@ float value_noise(float x, float y) {
 
     return noise;
 }
+
+float fBm_noise (float x, float y, int octaves, float amplitude){
+    
+    float value = 0.0f;
+
+    for (int i = 0; i < octaves; i++){
+        value += amplitude * value_noise(x, y);
+        x *= 2;
+        y *= 2;
+        amplitude *= 0.5;
+    }
+
+    return value;
+}

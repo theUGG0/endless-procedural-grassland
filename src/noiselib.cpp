@@ -1,5 +1,4 @@
 #include <glm/common.hpp>
-#include <glm/ext/quaternion_common.hpp>
 #include <glm/glm.hpp>
 #include <cstdint>
 
@@ -33,7 +32,7 @@ float value_noise(float x, float y) {
     float c = coordinate_hash(x_fl, y_fl + 1);
     float d = coordinate_hash(x_fl + 1, y_fl + 1);
 
-    // cubic Hermine curve
+    // cubic Hermite curve
     float x_fr = glm::fract(x);
     float y_fr = glm::fract(y);
 
@@ -49,13 +48,15 @@ float value_noise(float x, float y) {
 float fBm_noise (float x, float y, int octaves, float amplitude){
     
     float value = 0.0f;
+    float ampsum = 0.0f;
 
     for (int i = 0; i < octaves; i++){
         value += amplitude * value_noise(x, y);
         x *= 2;
         y *= 2;
+        ampsum += amplitude;
         amplitude *= 0.5;
     }
 
-    return value;
+    return value / ampsum;
 }

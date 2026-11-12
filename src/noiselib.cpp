@@ -23,8 +23,8 @@ float coordinate_hash(int x, int y) {
 float value_noise(float x, float y) {
     // gotten from https://thebookofshaders.com/11/
 
-    int x_fl = glm::floor(x);
-    int y_fl = glm::floor(y);
+    int x_fl = static_cast<int>(glm::floor(x));
+    int y_fl = static_cast<int>(glm::floor(y));
     
     // corners we interpolate between
     float a = coordinate_hash(x_fl, y_fl);

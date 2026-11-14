@@ -20,6 +20,7 @@ add_executable(Endless_Grassland
     ${CMAKE_CURRENT_LIST_DIR}/src/main.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/shader_util.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/Camera.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/noiselib.cpp
 )
 
 target_include_directories(Endless_Grassland PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)

@@ -6,9 +6,10 @@
 // We configure this to be "output 0" for our fragment shader
 // in the main program using glBindFragDataLocation
 
-out vec4 fragColor;
+out vec4 FragColor;
+in vec2 uv;
 
 void main(void) {
     float noise = fBm_noise(gl_FragCoord.xy / 64.0, 7, 2.5);
-    fragColor = vec4(vec3(noise), 1.0);
+    FragColor = vec4(vec3(noise), 1.0);
 }

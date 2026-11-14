@@ -4,8 +4,6 @@
  */
 #include <string>
 #include <GL/glew.h>
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
 #include <glm/gtc/type_ptr.hpp>
 
 /**
@@ -14,10 +12,10 @@
  */
 class shader_prog {
 private:
-    GLuint vertex_shader, fragment_shader, prog;
-    std::string v_source, f_source;
+    GLuint vertex_shader, fragment_shader, tess_control_shader, tess_eval_shader, prog;
+    std::string v_source, f_source, tess_control_source, tess_eval_source;
 public:
-    shader_prog(const char* vertex_shader_filename, const char* fragment_shader_filename);
+    shader_prog(const char* vertex_shader_filename, const char* fragment_shader_filename, const char* tessellation_shader_filename = NULL, const char* primitive_generator_shader_filename = NULL);
     void use();
     void free();
     operator GLuint();
@@ -25,8 +23,10 @@ public:
     // Shorthands for glUniform specification
     void uniform1i(const char* name, int i);
     void uniform1f(const char* name, float f);
+    void uniform2f(const char* name, float x, float y);
     void uniform3f(const char* name, float x, float y, float z);
     void uniformMatrix4fv(const char* name, const float* matrix);
     void uniformMatrix4fv(const char* name, glm::mat4 matrix);
     void attribute3fv(const char* name, GLfloat* vecArray, int numberOfVertices);
+    void attribute2fv(const char* name, GLfloat* vecArray, int numberOfVertices);
 };

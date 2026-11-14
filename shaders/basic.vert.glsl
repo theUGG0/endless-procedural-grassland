@@ -9,10 +9,13 @@ uniform mat4 modelMatrix;
 
 in vec3 position;
 in vec3 color;
+in vec2 texCoords;
 
 out vec3 interpolatedColor;
+out vec2 uv;
 
 void main(void) {
     interpolatedColor = color;
+    uv = texCoords;
     gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
 }

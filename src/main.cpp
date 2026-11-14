@@ -1,5 +1,6 @@
 #include "shader_util.h"
 #include "Camera.h"
+#include "TerrainChunk.h"
 
 #include <stack>
 #include <stdio.h>
@@ -16,16 +17,25 @@ const float SCREEN_WIDTH = 640;
 const float SCREEN_HEIGHT = 480;
 
 //---------- Forward Declarations ----------//
-void drawCube();
+void drawChunk();
 
 // Load shaders in
 #define GLSL(src) #src
 #define CONCAT_PATHS(A, B) A "/" B
 #define ADD_ROOT(B) CONCAT_PATHS(PROJ_ROOT_PATH, B)
+
+//----------------- Shaders ----------------//
 shader_prog shader(ADD_ROOT("shaders/basic.vert.glsl"),
                    ADD_ROOT("shaders/basic.frag.glsl"));
+shader_prog terrainShader(
+    ADD_ROOT("shaders/basic.vert.glsl"),
+    ADD_ROOT("shaders/basic.frag.glsl"),
+    ADD_ROOT("shaders/tess_control.tesc"),
+    ADD_ROOT("shaders/tess_eval.tese")
+);
 
-GLuint cubeVAO;
+GLuint chunkVAO;
+GLuint chunkIndexCount;
 Camera mainCamera(
     perspective(radians(120.0f), SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 100.0f), // Projection
     vec3(0.0, 0.0, 0.0) // Position
@@ -59,8 +69,8 @@ static void cursor_callback(GLFWwindow *window, double new_pos_x, double new_pos
   mousePosY = new_pos_y;
 }
 
-// Process input with delta time. Using OS KeyCallbacks behaves like typing
-// which is not ideal for movement, as pressing a key would wait a bit before it starts repeating
+// Process input with delta time. Using OS KeyCallbacks behaves
+// like typing so we dont want that for movement
 static void processInput(GLFWwindow* win, float deltaTime) {
   float moveSpeed = 0.5f;
   if (glfwGetKey(win, GLFW_KEY_LEFT_SHIFT)) {
@@ -82,83 +92,45 @@ static void processInput(GLFWwindow* win, float deltaTime) {
 
 static void render(GLFWwindow *window) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   // Render a simple cube for testing
-  drawCube();  
+  drawChunk();  
 }
 
 // NOTE: Remove this afterwards
 // create a cube for testing
-GLuint createCube() {
-  float s = 2.0;
-
-  GLfloat vertices[] = {
-      -s, -s,  s,
-       s, -s,  s,
-       s,  s,  s,
-      -s,  s,  s,
-      -s, -s, -s,
-       s, -s, -s,
-       s,  s, -s,
-      -s,  s, -s,
-  };
-
-  GLubyte indices[] = {
-      // Front
-      0, 1, 2,
-      0, 2, 3,
-
-      // Back
-      4, 7, 6,
-      4, 6, 5,
-
-      // Bottom
-      4, 5, 1,
-      4, 1, 0,
-
-      // Top
-      3, 2, 6,
-      3, 6, 7,
-
-      // Left
-      4, 0, 3,
-      4, 3, 7,
-
-      // Right
-      1, 5, 6,
-      1, 6, 2,
-  };
-
-
+GLuint createChunk() {
+  TerrainChunk testChunk {glm::vec3(0.0, 0.0, 0.0), 20.0, 5};
+  chunkIndexCount = testChunk.indices.size();
   
-
   GLuint vertexArrayHandle;
   glGenVertexArrays(1, &vertexArrayHandle);
   glBindVertexArray(vertexArrayHandle);
 
   // Store per vertex data and send it to the shader
-  shader.attribute3fv("position", vertices, 24);
+  terrainShader.attribute3fv("position", &testChunk.vertices.position[0][0], testChunk.vertices.position.size() * 3);
+  terrainShader.attribute2fv("uv", &testChunk.vertices.uv[0][0], testChunk.vertices.uv.size());
   
   // Store index data in the buffer
   GLuint vboHandle;
   glGenBuffers(1, &vboHandle);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboHandle);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, testChunk.indices.size() * sizeof(testChunk.indices[0]), testChunk.indices.data(), GL_STATIC_DRAW);
   
   return vertexArrayHandle;
 }
 
-void drawCube() {
-  std::stack<mat4> ms;
-  ms.push(mat4(1.0));
+void drawChunk() {
+    std::stack<mat4> ms;
+    ms.push(mat4(1.0));
 
-  // Cube stack
-  ms.push(ms.top());
-    ms.top() = glm::translate(ms.top(), vec3(0.0, 0.0, -5.0));
-    shader.uniformMatrix4fv("modelMatrix", ms.top());
-    glBindVertexArray(cubeVAO);
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_BYTE, 0);
-  ms.pop();
+    // Cube stack
+    ms.push(ms.top());
+      ms.top() = glm::translate(ms.top(), vec3(0.0, 0.0, -5.0));
+      terrainShader.uniformMatrix4fv("modelMatrix", ms.top());
+      glBindVertexArray(chunkVAO);
+      glDrawElements(GL_PATCHES, chunkIndexCount, GL_UNSIGNED_INT, 0);
+    ms.pop();
 }
 
 int main(void) {
@@ -189,10 +161,11 @@ int main(void) {
   glfwSetCursorPosCallback(window, cursor_callback);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Captures cursor
 
-  shader.use();
-
-  // Init scene (test cube)
-  cubeVAO = createCube();
+  terrainShader.use();
+  glPatchParameteri(GL_PATCH_VERTICES, 4);
+  
+  // Init scene (test chunk)
+  chunkVAO = createChunk();
 
   float lastFrameTime = 0.0f;
   while (!glfwWindowShouldClose(window)) {
@@ -204,8 +177,9 @@ int main(void) {
     processInput(window, deltaTime);
     
     // Give the shader our camera data before rendering
-    shader.uniformMatrix4fv("projectionMatrix", mainCamera.getProjection());
-    shader.uniformMatrix4fv("viewMatrix", mainCamera.getView());
+    terrainShader.uniformMatrix4fv("projectionMatrix", mainCamera.getProjection());
+    terrainShader.uniformMatrix4fv("viewMatrix", mainCamera.getView());
+    
 
     render(window);
 

@@ -13,8 +13,8 @@ uniform mat4 modelMatrix;
 
 const int MIN_TES = 1;  // 0 makes them disappear
 const int MAX_TES = 8; 
-const float MIN_DIST = 0.0;
-const float MAX_DIST = 50.0;
+const float MIN_DIST = 1.0;
+const float MAX_DIST = 100.0;
 
 void main() {
     gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;

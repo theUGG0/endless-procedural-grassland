@@ -41,7 +41,7 @@ shader_prog terrainShader(
 std::vector<GLuint> chunkVAOs;
 GLuint chunkIndexCount;
 Camera mainCamera(
-    perspective(radians(120.0f), SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 300.0f), // Projection
+    perspective(radians(90.0f), SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 1000.0f), // Projection
     vec3(0.0, 10.0, 0.0) // Position
 );
 
@@ -189,6 +189,7 @@ int main(void) {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
+  glClearColor(0.38f, 0.667f, 1.0f, 1.0f);
 
   terrainShader.use();
   glPatchParameteri(GL_PATCH_VERTICES, 4);

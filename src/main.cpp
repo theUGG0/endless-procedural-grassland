@@ -2,6 +2,7 @@
 #include "Camera.h"
 #include "TerrainChunk.h"
 
+#include <iostream>
 #include <stack>
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,9 +78,9 @@ static void cursor_callback(GLFWwindow *window, double new_pos_x, double new_pos
 // Process input with delta time. Using OS KeyCallbacks behaves
 // like typing so we dont want that for movement
 static void processInput(GLFWwindow* win, float delta_time) {
-  float moveSpeed = 0.02f * delta_time;
+  float moveSpeed = 15.0f * delta_time;
   if (glfwGetKey(win, GLFW_KEY_LEFT_SHIFT)) {
-    moveSpeed = 0.08f * delta_time;
+    moveSpeed = 30.0f * delta_time;
   }
   if (glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS) {
     mainCamera.move(glm::vec3(0.0, 0.0, -1.0 * moveSpeed));
@@ -175,6 +176,7 @@ int main(void) {
   }
 
   // GLFW setup
+  glfwSwapInterval(1); // Vsync
   glfwMakeContextCurrent(window);
   glewExperimental = GL_TRUE;
   glewInit();
@@ -205,6 +207,8 @@ int main(void) {
     // Delta Time for frames
     float currentFrame = static_cast<float>(glfwGetTime());
     float deltaTime = currentFrame - lastFrameTime;
+    lastFrameTime = currentFrame;
+    std::cout << "FPS:" << (1/deltaTime) << '\n'; 
 
     processInput(window, deltaTime);
     

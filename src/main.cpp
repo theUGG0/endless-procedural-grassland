@@ -13,13 +13,14 @@
 
 using namespace glm;
 
+// Window Constants
 const float SCREEN_WIDTH = 640;
 const float SCREEN_HEIGHT = 480;
+
+// Terrain variables
+bool SHOW_TERRAIN_POLYGONS = false;
 const int AMOUNT_OF_CHUNKS = 10;
 const int SIZE_OF_CHUNK = 100.0;
-
-//---------- Forward Declarations ----------//
-void drawChunk(int chunkIndex);
 
 // Load shaders in
 #define GLSL(src) #src
@@ -40,7 +41,7 @@ std::vector<GLuint> chunkVAOs;
 GLuint chunkIndexCount;
 Camera mainCamera(
     perspective(radians(120.0f), SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 300.0f), // Projection
-    vec3(0.0, 0.0, 0.0) // Position
+    vec3(0.0, 10.0, 0.0) // Position
 );
 
 static void error_callback(int error, const char *description) {
@@ -52,6 +53,8 @@ static void error_callback(int error, const char *description) {
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     glfwSetWindowShouldClose(window, GL_TRUE);
+  else if (key == GLFW_KEY_T && action == GLFW_PRESS)
+    SHOW_TERRAIN_POLYGONS = !SHOW_TERRAIN_POLYGONS; // toggle tessellation showcase
 }
 
 double mousePosX = 0.0;
@@ -73,10 +76,10 @@ static void cursor_callback(GLFWwindow *window, double new_pos_x, double new_pos
 
 // Process input with delta time. Using OS KeyCallbacks behaves
 // like typing so we dont want that for movement
-static void processInput(GLFWwindow* win, float deltaTime) {
-  float moveSpeed = 0.5f;
+static void processInput(GLFWwindow* win, float delta_time) {
+  float moveSpeed = 0.02f * delta_time;
   if (glfwGetKey(win, GLFW_KEY_LEFT_SHIFT)) {
-    moveSpeed = 2.0f;
+    moveSpeed = 0.08f * delta_time;
   }
   if (glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS) {
     mainCamera.move(glm::vec3(0.0, 0.0, -1.0 * moveSpeed));
@@ -89,15 +92,6 @@ static void processInput(GLFWwindow* win, float deltaTime) {
   }
   if (glfwGetKey(win, GLFW_KEY_D) == GLFW_PRESS) {
     mainCamera.move(glm::vec3(1.0 * moveSpeed, 0.0, 0.0));
-  }
-}
-
-static void render(GLFWwindow *window) {
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  // Render generated chunks
-  for (int i = 0; i < AMOUNT_OF_CHUNKS * AMOUNT_OF_CHUNKS; i++) {
-    drawChunk(i);  
   }
 }
 
@@ -123,7 +117,7 @@ GLuint createChunk(glm::vec3 pos) {
   return vertexArrayHandle;
 }
 
-void drawChunk(int chunkIndex) {
+void drawChunk(int chunk_index, bool showcase_tessellation = false) {
     std::stack<mat4> ms;
     ms.push(mat4(1.0));
 
@@ -131,9 +125,33 @@ void drawChunk(int chunkIndex) {
     ms.push(ms.top());
       ms.top() = glm::translate(ms.top(), vec3(0.0, 0.0, -5.0));
       terrainShader.uniformMatrix4fv("modelMatrix", ms.top());
-      glBindVertexArray(chunkVAOs[chunkIndex]);
+      
+      // ENABLE/DISABLE Tessellation showcase
+      if (showcase_tessellation) {
+        terrainShader.uniform3f("lineColor", 0.0, 1.0, 0.0);
+      } else {
+        terrainShader.uniform3f("lineColor", 0.0, 0.0, 0.0);  
+      }
+      
+      glBindVertexArray(chunkVAOs[chunk_index]);
       glDrawElements(GL_PATCHES, chunkIndexCount, GL_UNSIGNED_INT, 0);
     ms.pop();
+}
+
+static void render(GLFWwindow *window) {
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  // Render generated chunks
+  for (int i = 0; i < AMOUNT_OF_CHUNKS * AMOUNT_OF_CHUNKS; i++) {
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1.0f, 1.0f);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    drawChunk(i);  
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    if (SHOW_TERRAIN_POLYGONS) {
+      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      drawChunk(i, SHOW_TERRAIN_POLYGONS);
+    }
+  }
 }
 
 int main(void) {
@@ -156,6 +174,7 @@ int main(void) {
     exit(EXIT_FAILURE);
   }
 
+  // GLFW setup
   glfwMakeContextCurrent(window);
   glewExperimental = GL_TRUE;
   glewInit();
@@ -163,6 +182,11 @@ int main(void) {
   glfwSetKeyCallback(window, key_callback);
   glfwSetCursorPosCallback(window, cursor_callback);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Captures cursor
+
+  // OpenGL settings
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
 
   terrainShader.use();
   glPatchParameteri(GL_PATCH_VERTICES, 4);

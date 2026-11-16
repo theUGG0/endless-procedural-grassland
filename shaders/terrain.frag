@@ -6,6 +6,8 @@
 // We configure this to be "output 0" for our fragment shader
 // in the main program using glBindFragDataLocation
 
+uniform vec3 lineColor;
+
 out vec4 FragColor;
 in vec2 tessEvalUV;
 in float teHeight;
@@ -13,4 +15,8 @@ in float teHeight;
 void main(void) {
     float noise = fBm_noise(tessEvalUV * 0.1, 7, 2.5);
     FragColor = vec4(vec3(noise), 1.0);
+
+    if (lineColor != vec3(0.0)) {
+        FragColor = vec4(vec3(lineColor), 1.0);
+    }
 }

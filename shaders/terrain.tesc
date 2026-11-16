@@ -14,7 +14,7 @@ uniform mat4 modelMatrix;
 const int MIN_TES = 1;  // 0 makes them disappear
 const int MAX_TES = 16; 
 const float MIN_DIST = 0.0;
-const float MAX_DIST = 30.0;
+const float MAX_DIST = 35.0;
 
 float distToCamera(vec4 objPos) {
     return length((viewMatrix * modelMatrix * objPos).xyz);

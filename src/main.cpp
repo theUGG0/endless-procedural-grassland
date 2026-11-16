@@ -15,9 +15,11 @@ using namespace glm;
 
 const float SCREEN_WIDTH = 640;
 const float SCREEN_HEIGHT = 480;
+const int AMOUNT_OF_CHUNKS = 10;
+const int SIZE_OF_CHUNK = 100.0;
 
 //---------- Forward Declarations ----------//
-void drawChunk();
+void drawChunk(int chunkIndex);
 
 // Load shaders in
 #define GLSL(src) #src
@@ -28,16 +30,16 @@ void drawChunk();
 shader_prog shader(ADD_ROOT("shaders/basic.vert.glsl"),
                    ADD_ROOT("shaders/basic.frag.glsl"));
 shader_prog terrainShader(
-    ADD_ROOT("shaders/basic.vert.glsl"),
-    ADD_ROOT("shaders/basic.frag.glsl"),
-    ADD_ROOT("shaders/tess_control.tesc"),
-    ADD_ROOT("shaders/tess_eval.tese")
+    ADD_ROOT("shaders/terrain.vert"),
+    ADD_ROOT("shaders/terrain.frag"),
+    ADD_ROOT("shaders/terrain.tesc"),
+    ADD_ROOT("shaders/terrain.tese")
 );
 
-GLuint chunkVAO;
+std::vector<GLuint> chunkVAOs;
 GLuint chunkIndexCount;
 Camera mainCamera(
-    perspective(radians(120.0f), SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 100.0f), // Projection
+    perspective(radians(120.0f), SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 300.0f), // Projection
     vec3(0.0, 0.0, 0.0) // Position
 );
 
@@ -93,14 +95,16 @@ static void processInput(GLFWwindow* win, float deltaTime) {
 static void render(GLFWwindow *window) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  // Render a simple cube for testing
-  drawChunk();  
+  // Render generated chunks
+  for (int i = 0; i < AMOUNT_OF_CHUNKS * AMOUNT_OF_CHUNKS; i++) {
+    drawChunk(i);  
+  }
 }
 
 // NOTE: Remove this afterwards
 // create a cube for testing
-GLuint createChunk() {
-  TerrainChunk testChunk {glm::vec3(0.0, 0.0, 0.0), 20.0, 5};
+GLuint createChunk(glm::vec3 pos) {
+  TerrainChunk testChunk {pos, SIZE_OF_CHUNK, 20};
   chunkIndexCount = testChunk.indices.size();
   
   GLuint vertexArrayHandle;
@@ -109,7 +113,6 @@ GLuint createChunk() {
 
   // Store per vertex data and send it to the shader
   terrainShader.attribute3fv("position", &testChunk.vertices.position[0][0], testChunk.vertices.position.size() * 3);
-  terrainShader.attribute2fv("uv", &testChunk.vertices.uv[0][0], testChunk.vertices.uv.size());
   
   // Store index data in the buffer
   GLuint vboHandle;
@@ -120,7 +123,7 @@ GLuint createChunk() {
   return vertexArrayHandle;
 }
 
-void drawChunk() {
+void drawChunk(int chunkIndex) {
     std::stack<mat4> ms;
     ms.push(mat4(1.0));
 
@@ -128,7 +131,7 @@ void drawChunk() {
     ms.push(ms.top());
       ms.top() = glm::translate(ms.top(), vec3(0.0, 0.0, -5.0));
       terrainShader.uniformMatrix4fv("modelMatrix", ms.top());
-      glBindVertexArray(chunkVAO);
+      glBindVertexArray(chunkVAOs[chunkIndex]);
       glDrawElements(GL_PATCHES, chunkIndexCount, GL_UNSIGNED_INT, 0);
     ms.pop();
 }
@@ -141,8 +144,8 @@ int main(void) {
   if (!glfwInit())
     exit(EXIT_FAILURE);
 
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
@@ -164,8 +167,13 @@ int main(void) {
   terrainShader.use();
   glPatchParameteri(GL_PATCH_VERTICES, 4);
   
-  // Init scene (test chunk)
-  chunkVAO = createChunk();
+  // Init scene (test chunks)
+  for (int chunkX = 0; chunkX < AMOUNT_OF_CHUNKS; chunkX++) {
+    for (int chunkY = 0; chunkY < AMOUNT_OF_CHUNKS; chunkY++) {
+      chunkVAOs.push_back(createChunk(glm::vec3(chunkX * SIZE_OF_CHUNK, 0.0, chunkY * SIZE_OF_CHUNK)));
+      
+    }
+  }
 
   float lastFrameTime = 0.0f;
   while (!glfwWindowShouldClose(window)) {

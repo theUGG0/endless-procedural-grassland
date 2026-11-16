@@ -9,13 +9,12 @@ TerrainChunk::TerrainChunk(glm::vec3 origin_pos, float size, int divs): position
 }
 
 // Based on this videos code https://www.youtube.com/watch?v=FKLbihqDLsg
-// Generate the positions and UV for the vertices of the plane
+// Generate the positions for the vertices of the plane
 void TerrainChunk::initializeVertexData(float size, int divs) {
     float triangleSide = size / divs;
     for (int row = 0; row < divs + 1; row++) {   
         for (int col = 0; col < divs + 1; col++) {
-          vertices.position.emplace_back(col * triangleSide, 0.0, row * -triangleSide);
-          vertices.uv.emplace_back((float(col) / divs), (float(row) / divs));
+          vertices.position.emplace_back(glm::vec3(col * triangleSide, 0.0, row * -triangleSide) + position);
         }
     }
 }

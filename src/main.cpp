@@ -20,7 +20,7 @@ const float SCREEN_HEIGHT = 480;
 
 // Terrain variables
 bool SHOW_TERRAIN_POLYGONS = false;
-const int AMOUNT_OF_CHUNKS = 10;
+const int AMOUNT_OF_CHUNKS = 10; // in reality it's n^2 chuncks
 const int SIZE_OF_CHUNK = 100.0;
 
 // Load shaders in
@@ -189,7 +189,7 @@ int main(void) {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
-  glClearColor(0.38f, 0.667f, 1.0f, 1.0f);
+  glClearColor(0.38f, 0.667f, 1.0f, 1.0f); // Background color is a nice blue
 
   terrainShader.use();
   glPatchParameteri(GL_PATCH_VERTICES, 4);
@@ -209,7 +209,7 @@ int main(void) {
     float currentFrame = static_cast<float>(glfwGetTime());
     float deltaTime = currentFrame - lastFrameTime;
     lastFrameTime = currentFrame;
-    std::cout << "FPS:" << (1/deltaTime) << '\n'; 
+    std::cout << "FPS:" << (1.0f / deltaTime) << '\n'; 
 
     processInput(window, deltaTime);
     

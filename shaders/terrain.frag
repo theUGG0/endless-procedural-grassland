@@ -9,17 +9,20 @@ uniform mat4 viewMatrix;
 
 
 out vec4 FragColor;
-in vec2 tessEvalUV;
+in vec2 noiseCoord;
+
+// In view-space
 in vec3 terrainNormal;
-in vec3 viewPos;
+in vec3 terrainPos;
 
 void main(void) {
 
+    // NOTE: these only need to be here if we want to show noise as a texture
     // TODO: these should probably be uniform as they need to be the same across shaders anyways and some rely on CPU side info
-    float sizeOfChunk = 20.0f;
-    int octaves = 4;
+    float scale = 30.0f;
+    int octaves = 15;
     float amplitude = 2.0;
-    float noise = fBm_noise(tessEvalUV / sizeOfChunk, octaves, amplitude);
+    float noise = fBm_noise(noiseCoord / scale, octaves, amplitude);
 
     // TODO: HARDCODED DIRECTIONAL LIGHT
     vec3 dirLightPosition = normalize(vec3(0.4, -0.6, 0.3));
@@ -28,7 +31,7 @@ void main(void) {
 
     // lightning model
     vec3 n = normalize(terrainNormal);
-    vec3 v = normalize(-viewPos);
+    vec3 v = normalize(-terrainPos);
     vec3 l = normalize(-(mat3(viewMatrix) * dirLightPosition));
     vec3 h = normalize(l+v);
     float s = 400.0;
@@ -36,7 +39,7 @@ void main(void) {
     vec3 ambient = 0.1f * terrainColor;
     vec3 diffuse = max(0.0, dot(n, l)) * terrainColor; 
     // vec3 specular = vec3(pow(max(0.0, dot(n, h)), s));
-    
+
     FragColor = vec4(vec3(ambient + diffuse), 1.0);
 
     if (lineColor != vec3(0.0)) {

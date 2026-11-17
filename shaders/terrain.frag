@@ -18,11 +18,12 @@ in vec3 terrainPos;
 void main(void) {
 
     // NOTE: these only need to be here if we want to show noise as a texture
-    // TODO: these should probably be uniform as they need to be the same across shaders anyways and some rely on CPU side info
-    float scale = 30.0f;
-    int octaves = 15;
-    float amplitude = 2.0;
-    float noise = fBm_noise(noiseCoord / scale, octaves, amplitude);
+    // If we do, then these should probably be uniform or passed by the previous shader
+    // as they need to be the same across shaders
+    // float scale = 30.0f;
+    // int octaves = 15;
+    // float amplitude = 2.0;
+    // float noise = fBm_noise(noiseCoord / scale, octaves, amplitude);
 
     // TODO: HARDCODED DIRECTIONAL LIGHT
     vec3 dirLightPosition = normalize(vec3(0.4, -0.6, 0.3));

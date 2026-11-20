@@ -1,6 +1,7 @@
 #include "shader_util.h"
 #include "Camera.h"
 
+#include <cmath>
 #include <stack>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +18,8 @@ const float SCREEN_HEIGHT = 480;
 
 //---------- Forward Declarations ----------//
 void drawCube();
+// void drawGrassBlade(float x, float y, float z);
+void drawGrassBlade();
 
 // Load shaders in
 #define GLSL(src) #src
@@ -25,7 +28,11 @@ void drawCube();
 shader_prog shader(ADD_ROOT("shaders/basic.vert.glsl"),
                    ADD_ROOT("shaders/basic.frag.glsl"));
 
+
 GLuint cubeVAO;
+GLuint grassBladeVAO;
+GLuint instanceVBO;
+
 Camera mainCamera(
     perspective(radians(120.0f), SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 100.0f), // Projection
     vec3(0.0, 0.0, 0.0) // Position
@@ -84,8 +91,70 @@ static void render(GLFWwindow *window) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   
   // Render a simple cube for testing
-  drawCube();  
+  // drawCube();  
+   drawGrassBlade();
 }
+
+
+// creating equilateral triangle so it should look better in larger quantities
+void createGrassInstances() {
+  // random offsets for now
+  // TODO: make them appear random i guess and make them procedurally generate
+  const GLfloat offsets[] = {
+    -3.0f, 0.0f, -5.0f,
+    0.0f, 0.0f, -5.0f,
+    3.0f, 0.0f, -5.0f,
+    -1.5f, 0.0f, -8.0f,
+    1.5f, 0.0f, -8.0f
+  };
+
+  glBindVertexArray(grassBladeVAO);
+
+  glGenBuffers(1, &instanceVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(offsets), offsets, GL_STATIC_DRAW);
+
+  glEnableVertexAttribArray(1);//enable instanceOffset
+  glVertexAttribPointer(1,3,GL_FLOAT, GL_FALSE, 3* sizeof(GLfloat), nullptr);// describing how to read attribute
+  glVertexAttribDivisor(1,1);//advance once per blade
+
+  glBindVertexArray(0);// unbind VAO
+
+}
+
+GLuint createGrassBlade() {
+  float s = 2.0;
+
+  float h = (std::sqrt(3.0f)*s)/2.0f;
+
+  GLfloat vertices[] = {
+      -s/2.0f, 0.0f,  0.0f,
+       s/2.0f, 0.0f,  0.0f,
+       0.0f, h,  0.0f,
+  };
+
+  GLubyte indices[] = {
+    // front
+    0,1,2,
+    // back
+    0,2,1
+  };
+
+  GLuint vertexArrayHandle;
+  glGenVertexArrays(1, &vertexArrayHandle);
+  glBindVertexArray(vertexArrayHandle);
+
+  // Store per vertex data and send it to the shader
+  shader.attribute3fv("position", vertices, 9);
+  
+  // Store index data in the buffer
+  GLuint vboHandle;
+  glGenBuffers(1, &vboHandle);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboHandle);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+  
+  return vertexArrayHandle;
+};
 
 // NOTE: Remove this afterwards
 // create a cube for testing
@@ -138,13 +207,13 @@ GLuint createCube() {
 
   // Store per vertex data and send it to the shader
   shader.attribute3fv("position", vertices, 24);
-  
+
   // Store index data in the buffer
   GLuint vboHandle;
   glGenBuffers(1, &vboHandle);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboHandle);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-  
+
   return vertexArrayHandle;
 }
 
@@ -159,6 +228,12 @@ void drawCube() {
     glBindVertexArray(cubeVAO);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_BYTE, 0);
   ms.pop();
+}
+
+void drawGrassBlade() {
+    shader.uniformMatrix4fv("modelMatrix", mat4(1.0f));
+    glBindVertexArray(grassBladeVAO);
+    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, nullptr, 5);// 5 is number of blades
 }
 
 int main(void) {
@@ -192,7 +267,10 @@ int main(void) {
   shader.use();
 
   // Init scene (test cube)
-  cubeVAO = createCube();
+  // cubeVAO = createCube();
+  grassBladeVAO = createGrassBlade();
+  // creates insctances
+  createGrassInstances();
 
   float lastFrameTime = 0.0f;
   while (!glfwWindowShouldClose(window)) {

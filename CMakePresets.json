@@ -16,7 +16,7 @@
                 "value": "host=x86",
                 "strategy": "external"
             },
-            "generator": "Visual Studio 17 2022",
+            "generator": "Ninja",
             "hidden": true
         },
         {

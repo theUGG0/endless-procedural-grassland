@@ -27,8 +27,8 @@ void drawGrassBlade();
 #define ADD_ROOT(B) CONCAT_PATHS(PROJ_ROOT_PATH, B)
 shader_prog shader(ADD_ROOT("shaders/basic.vert.glsl"),
                    ADD_ROOT("shaders/basic.frag.glsl"));
-
-
+shader_prog grass_shader(ADD_ROOT("shaders/grass.vert.glsl"),
+                   ADD_ROOT("shaders/grass.frag.glsl"));
 GLuint cubeVAO;
 GLuint grassBladeVAO;
 GLuint instanceVBO;
@@ -69,7 +69,7 @@ static void cursor_callback(GLFWwindow *window, double new_pos_x, double new_pos
 // Process input with delta time. Using OS KeyCallbacks behaves like typing
 // which is not ideal for movement, as pressing a key would wait a bit before it starts repeating
 static void processInput(GLFWwindow* win, float deltaTime) {
-  float moveSpeed = 0.5f;
+  float moveSpeed = 0.1f;
   if (glfwGetKey(win, GLFW_KEY_LEFT_SHIFT)) {
     moveSpeed = 2.0f;
   }
@@ -92,7 +92,8 @@ static void render(GLFWwindow *window) {
   
   // Render a simple cube for testing
   // drawCube();  
-   drawGrassBlade();
+  glUseProgram(grass_shader);
+  drawGrassBlade();
 }
 
 
@@ -128,16 +129,28 @@ GLuint createGrassBlade() {
   float h = (std::sqrt(3.0f)*s)/2.0f;
 
   GLfloat vertices[] = {
-      -s/2.0f, 0.0f,  0.0f,
-       s/2.0f, 0.0f,  0.0f,
-       0.0f, h,  0.0f,
+      0.0f, 1.0f, 0.0f,
+      0.0f, -1.0f, 0.0f,
+      0.33f, 1.0f, 0.0f,
+      0.33f, -1.0f, 0.0f,
+      0.66f, 1.0f, 0.0f,
+      0.66f, -1.0f, 0.0f,
+      1.0f, 0.0f, 0.0f
   };
 
   GLubyte indices[] = {
     // front
     0,1,2,
+    2,1,3,
+    2,3,4,
+    4,3,5,
+    4,5,6,
     // back
-    0,2,1
+    0,2,1,
+    2,3,1,
+    2,4,3,
+    4,5,3,
+    4,6,5
   };
 
   GLuint vertexArrayHandle;
@@ -145,7 +158,7 @@ GLuint createGrassBlade() {
   glBindVertexArray(vertexArrayHandle);
 
   // Store per vertex data and send it to the shader
-  shader.attribute3fv("position", vertices, 9);
+  grass_shader.attribute3fv("position", vertices, 21);
   
   // Store index data in the buffer
   GLuint vboHandle;
@@ -231,9 +244,9 @@ void drawCube() {
 }
 
 void drawGrassBlade() {
-    shader.uniformMatrix4fv("modelMatrix", mat4(1.0f));
+    grass_shader.uniformMatrix4fv("modelMatrix", mat4(1.0f));
     glBindVertexArray(grassBladeVAO);
-    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, nullptr, 5);// 5 is number of blades
+    glDrawElementsInstanced(GL_TRIANGLES, 30, GL_UNSIGNED_BYTE, nullptr, 5);// 5 is number of blades
 }
 
 int main(void) {
@@ -243,6 +256,7 @@ int main(void) {
 
   if (!glfwInit())
     exit(EXIT_FAILURE);
+
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -264,6 +278,7 @@ int main(void) {
   glfwSetCursorPosCallback(window, cursor_callback);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Captures cursor
 
+  grass_shader.use();
   shader.use();
 
   // Init scene (test cube)
@@ -282,9 +297,12 @@ int main(void) {
     processInput(window, deltaTime);
     
     // Give the shader our camera data before rendering
+    glUseProgram(shader);
     shader.uniformMatrix4fv("projectionMatrix", mainCamera.getProjection());
     shader.uniformMatrix4fv("viewMatrix", mainCamera.getView());
-
+    glUseProgram(grass_shader);
+    grass_shader.uniformMatrix4fv("projectionMatrix", mainCamera.getProjection());
+    grass_shader.uniformMatrix4fv("viewMatrix", mainCamera.getView());
     render(window);
 
     glfwSwapBuffers(window);

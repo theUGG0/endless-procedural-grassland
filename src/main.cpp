@@ -124,17 +124,18 @@ void createGrassInstances() {
 }
 
 GLuint createGrassBlade() {
-  float s = 2.0;
-
-  float h = (std::sqrt(3.0f)*s)/2.0f;
 
   GLfloat vertices[] = {
-      0.0f, 1.0f, 0.0f,
       0.0f, -1.0f, 0.0f,
-      0.33f, 1.0f, 0.0f,
+      0.0f, 1.0f, 0.0f,
       0.33f, -1.0f, 0.0f,
-      0.66f, 1.0f, 0.0f,
+      0.33f,1.0f, 0.0f,
       0.66f, -1.0f, 0.0f,
+      0.66f, 1.0f, 0.0f,
+      0.83f, -1.0f, 0.0f,
+      0.83f, 1.0f, 0.0f,
+      0.9f, -1.0f, 0.0f,
+      0.9f, 1.0f, 0.0f,
       1.0f, 0.0f, 0.0f
   };
 
@@ -145,12 +146,20 @@ GLuint createGrassBlade() {
     2,3,4,
     4,3,5,
     4,5,6,
+    6,5,7,
+    6,7,8,
+    8,7,9,
+    8,9,10,
     // back
     0,2,1,
     2,3,1,
     2,4,3,
     4,5,3,
-    4,6,5
+    4,6,5,
+    6,7,5,
+    6,8,7,
+    8,9,7,
+    8,10,9
   };
 
   GLuint vertexArrayHandle;
@@ -158,8 +167,8 @@ GLuint createGrassBlade() {
   glBindVertexArray(vertexArrayHandle);
 
   // Store per vertex data and send it to the shader
-  grass_shader.attribute3fv("position", vertices, 21);
-  
+  grass_shader.attribute3fv("position", vertices, 33);
+
   // Store index data in the buffer
   GLuint vboHandle;
   glGenBuffers(1, &vboHandle);
@@ -246,7 +255,7 @@ void drawCube() {
 void drawGrassBlade() {
     grass_shader.uniformMatrix4fv("modelMatrix", mat4(1.0f));
     glBindVertexArray(grassBladeVAO);
-    glDrawElementsInstanced(GL_TRIANGLES, 30, GL_UNSIGNED_BYTE, nullptr, 5);// 5 is number of blades
+    glDrawElementsInstanced(GL_TRIANGLES, 54, GL_UNSIGNED_BYTE, nullptr, 5);// 5 is number of blades
 }
 
 int main(void) {
@@ -301,6 +310,13 @@ int main(void) {
     shader.uniformMatrix4fv("projectionMatrix", mainCamera.getProjection());
     shader.uniformMatrix4fv("viewMatrix", mainCamera.getView());
     glUseProgram(grass_shader);
+
+      // TODO: figure out proper way to set these values?
+    grass_shader.uniform1f("baseHeight", 1.8f);
+    grass_shader.uniform1f("baseWidth", 0.05f);
+    grass_shader.uniform1f("baseTilt", 0.5f);
+    grass_shader.uniform1f("baseBend", 0.25f);
+
     grass_shader.uniformMatrix4fv("projectionMatrix", mainCamera.getProjection());
     grass_shader.uniformMatrix4fv("viewMatrix", mainCamera.getView());
     render(window);

@@ -10,7 +10,10 @@
 #include <GL/glew.h>
 
 #include <GLFW/glfw3.h>
+#include <glm/gtx/hash.hpp>
 #include <glm/glm.hpp>
+
+#include <unordered_map>
 
 using namespace glm;
 
@@ -20,7 +23,7 @@ const float SCREEN_HEIGHT = 480;
 
 // Terrain variables
 bool SHOW_TERRAIN_POLYGONS = false;
-const int AMOUNT_OF_CHUNKS = 10; // in reality it's n^2 chuncks
+const int CHUNK_VIEW_DISTANCE = 12;
 const int SIZE_OF_CHUNK = 100.0;
 
 // Load shaders in
@@ -38,10 +41,11 @@ shader_prog terrainShader(
     ADD_ROOT("shaders/terrain.tese")
 );
 
-std::vector<GLuint> chunkVAOs;
-GLuint chunkIndexCount;
+std::unordered_map<glm::ivec2, GLuint> chunkVAOMap; // Store Chunks by X and Y chunk coords
+int chunkIndexCount; // Stores index count for 1 chunk
+
 Camera mainCamera(
-    perspective(radians(90.0f), SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 1000.0f), // Projection
+    perspective(radians(90.0f), SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 3000.0f), // Projection
     vec3(0.0, 10.0, 0.0) // Position
 );
 
@@ -78,9 +82,9 @@ static void cursor_callback(GLFWwindow *window, double new_pos_x, double new_pos
 // Process input with delta time. Using OS KeyCallbacks behaves
 // like typing so we dont want that for movement
 static void processInput(GLFWwindow* win, float delta_time) {
-  float moveSpeed = 15.0f * delta_time;
+  float moveSpeed = 10000.0f * delta_time;
   if (glfwGetKey(win, GLFW_KEY_LEFT_SHIFT)) {
-    moveSpeed = 30.0f * delta_time;
+    moveSpeed = 60.0f * delta_time;
   }
   if (glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS) {
     mainCamera.move(glm::vec3(0.0, 0.0, -1.0 * moveSpeed));
@@ -97,7 +101,7 @@ static void processInput(GLFWwindow* win, float delta_time) {
 }
 
 // NOTE: Remove this afterwards
-// create a cube for testing
+// create a chunk for testing
 GLuint createChunk(glm::vec3 pos) {
   TerrainChunk testChunk {pos, SIZE_OF_CHUNK, 20};
   chunkIndexCount = testChunk.indices.size();
@@ -118,7 +122,7 @@ GLuint createChunk(glm::vec3 pos) {
   return vertexArrayHandle;
 }
 
-void drawChunk(int chunk_index, bool showcase_tessellation = false) {
+void drawChunk(glm::ivec2 chunk_pos, bool showcase_tessellation = false) {
     std::stack<mat4> ms;
     ms.push(mat4(1.0));
 
@@ -134,25 +138,66 @@ void drawChunk(int chunk_index, bool showcase_tessellation = false) {
         terrainShader.uniform3f("lineColor", 0.0, 0.0, 0.0);  
       }
       
-      glBindVertexArray(chunkVAOs[chunk_index]);
+      glBindVertexArray(chunkVAOMap[chunk_pos]);
       glDrawElements(GL_PATCHES, chunkIndexCount, GL_UNSIGNED_INT, 0);
     ms.pop();
 }
 
 static void render(GLFWwindow *window) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glm::vec3 camPos = mainCamera.getPosition();
+
+  
   // Render generated chunks
-  for (int i = 0; i < AMOUNT_OF_CHUNKS * AMOUNT_OF_CHUNKS; i++) {
-    glEnable(GL_POLYGON_OFFSET_FILL);
-    glPolygonOffset(1.0f, 1.0f);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    drawChunk(i);  
-    glDisable(GL_POLYGON_OFFSET_FILL);
-    if (SHOW_TERRAIN_POLYGONS) {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-      drawChunk(i, SHOW_TERRAIN_POLYGONS);
+  for (int chunkX = -CHUNK_VIEW_DISTANCE; chunkX <= CHUNK_VIEW_DISTANCE; chunkX++) {
+      for (int chunkZ = -CHUNK_VIEW_DISTANCE; chunkZ <= CHUNK_VIEW_DISTANCE; chunkZ++) {
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(1.0f, 1.0f);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+        glm::ivec2 cameraChunkCoords = glm::vec2(static_cast<int>(camPos.x / SIZE_OF_CHUNK), static_cast<int>(camPos.z / SIZE_OF_CHUNK));        
+        glm::ivec2 chunkPos = glm::ivec2(chunkX + cameraChunkCoords[0], chunkZ + cameraChunkCoords[1]);
+        
+        
+        drawChunk(chunkPos);  
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        if (SHOW_TERRAIN_POLYGONS) {
+          glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+          drawChunk(chunkPos, SHOW_TERRAIN_POLYGONS);
+        }
     }
   }
+}
+
+// Generates AMOUNT OF CHUNKS from camera pos
+void updateChunks() {
+    glm::vec3 camPos = mainCamera.getPosition();
+    glm::ivec2 cameraChunkCoords = glm::vec2(floor(camPos.x / SIZE_OF_CHUNK), floor(camPos.z / SIZE_OF_CHUNK));
+
+    for (int chunkX = -CHUNK_VIEW_DISTANCE; chunkX <= CHUNK_VIEW_DISTANCE; chunkX++) {
+        for (int chunkZ = -CHUNK_VIEW_DISTANCE; chunkZ <= CHUNK_VIEW_DISTANCE; chunkZ++) {
+          
+            glm::ivec2 chunkPos = cameraChunkCoords + glm::ivec2(chunkX, chunkZ);
+
+            // If chunk does not exist, create it
+            if (chunkVAOMap.find(chunkPos) == chunkVAOMap.end()) {
+                glm::ivec2 chunkWorldPos = glm::vec2(chunkPos[0] * SIZE_OF_CHUNK, chunkPos[1] * SIZE_OF_CHUNK);
+                chunkVAOMap[chunkPos] = createChunk(glm::vec3(chunkWorldPos[0], 0.0f, chunkWorldPos[1]));
+            }            
+        }
+    }
+    
+    // Loop over each chunk and check if it still needs to exist
+    for (auto it = chunkVAOMap.begin(); it != chunkVAOMap.end();) {
+        glm::ivec2 chunkPos = it->first;
+        GLuint chunkVAO = it->second;
+        glm::ivec2 chunkDistance = glm::abs(cameraChunkCoords - chunkPos);
+        if ( chunkDistance[0] > (CHUNK_VIEW_DISTANCE + 1) || chunkDistance[1] > (CHUNK_VIEW_DISTANCE + 1)) {
+            glDeleteVertexArrays(1, &chunkVAO);
+            it = chunkVAOMap.erase(it); // If something was deleted, keep going from there
+        } else { ++it; } // If nothing was deleted keep going as normal
+    }
+
 }
 
 int main(void) {
@@ -195,12 +240,8 @@ int main(void) {
   glPatchParameteri(GL_PATCH_VERTICES, 4);
   
   // Init scene (test chunks)
-  for (int chunkX = 0; chunkX < AMOUNT_OF_CHUNKS; chunkX++) {
-    for (int chunkY = 0; chunkY < AMOUNT_OF_CHUNKS; chunkY++) {
-      chunkVAOs.push_back(createChunk(glm::vec3(chunkX * SIZE_OF_CHUNK, 0.0, chunkY * SIZE_OF_CHUNK)));
-      
-    }
-  }
+  updateChunks();
+
 
   float lastFrameTime = 0.0f;
   while (!glfwWindowShouldClose(window)) {
@@ -211,7 +252,10 @@ int main(void) {
     lastFrameTime = currentFrame;
     std::cout << "FPS:" << (1.0f / deltaTime) << '\n'; 
 
-    processInput(window, deltaTime);
+    processInput(window, deltaTime);    
+
+    // Chunk generation delete/generate logic
+    updateChunks();
     
     // Give the shader our camera data before rendering
     terrainShader.uniformMatrix4fv("projectionMatrix", mainCamera.getProjection());
